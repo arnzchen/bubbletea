@@ -81,6 +81,16 @@ func (p *Program) initCancelReader(cancel bool) error {
 		p.waitForReadLoop()
 	}
 
+	// ReleaseTerminal cancels reads but leaves their resources open. Only
+	// close a replaced reader once its loop has exited, not after a timeout.
+	if p.cancelReader != nil && p.readLoopDone != nil {
+		select {
+		case <-p.readLoopDone:
+			_ = p.cancelReader.Close()
+		default:
+		}
+	}
+
 	var err error
 	p.cancelReader, err = newInputReader(p.input, p.mouseMode)
 	if err != nil {
